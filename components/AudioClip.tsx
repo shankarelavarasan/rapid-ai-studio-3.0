@@ -21,6 +21,7 @@ export const AudioClip: React.FC<AudioClipProps> = ({ event, track, pixelsPerSec
     };
 
     const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+        if (pixelsPerSecond === 0) return;
         const dragData = e.dataTransfer.getData('text/plain');
         if (!dragData) return;
         const { eventId, initialTime, startX } = JSON.parse(dragData);

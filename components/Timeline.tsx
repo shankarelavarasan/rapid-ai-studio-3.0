@@ -28,7 +28,7 @@ export const Timeline: React.FC<TimelineProps> = ({ tracks, playheadPosition, se
 
     const handlePlayheadInteraction = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         const timeline = timelineRef.current;
-        if (!timeline) return;
+        if (!timeline || pixelsPerSecond === 0) return;
 
         const moveHandler = (moveEvent: MouseEvent) => {
             const rect = timeline.getBoundingClientRect();

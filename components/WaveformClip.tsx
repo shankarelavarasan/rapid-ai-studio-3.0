@@ -106,6 +106,7 @@ export const WaveformClip: React.FC<WaveformClipProps> = ({ track, pixelsPerSeco
     }, [track.audioBuffer, width]);
 
     const handleMainDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        if (pixelsPerSecond === 0) return;
         const dragData = e.dataTransfer.getData('text/plain');
         if (!dragData) return;
         const { initialTime, startX } = JSON.parse(dragData);
@@ -123,7 +124,7 @@ export const WaveformClip: React.FC<WaveformClipProps> = ({ track, pixelsPerSeco
         e.preventDefault();
 
         const moveHandler = (moveEvent: MouseEvent) => {
-            if (!clipRef.current) return;
+            if (!clipRef.current || pixelsPerSecond === 0) return;
             const rect = clipRef.current.parentElement!.getBoundingClientRect();
             const mouseX = moveEvent.clientX - rect.left;
             

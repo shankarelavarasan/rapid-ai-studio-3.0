@@ -8,11 +8,21 @@ interface AiTrackResponse {
 // Ensure the API_KEY is available in your environment variables
 const API_KEY = process.env.API_KEY;
 
-if (!API_KEY) {
-    console.warn("Gemini API key not found. AI features will be disabled. Please set process.env.API_KEY.");
-}
+let ai: GoogleGenAI | null = null;
 
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
+// Lazily initialize the AI client to prevent app crash on load
+const getAiClient = () => {
+    if (ai) {
+        return ai;
+    }
+    if (!API_KEY) {
+        console.warn("Gemini API key not found. AI features will be disabled. Please set process.env.API_KEY.");
+        throw new Error("Gemini API key is not configured.");
+    }
+    ai = new GoogleGenAI({ apiKey: API_KEY });
+    return ai;
+};
+
 
 const beatSchema = {
     type: Type.OBJECT,
@@ -64,9 +74,6 @@ export const generateAiTrack = async (
     bpm: number,
     instrument: InstrumentType,
 ): Promise<AiTrackResponse> => {
-    if (!API_KEY) {
-        throw new Error("Gemini API key is not configured.");
-    }
     
     // Generate 2 measures of music
     const totalDuration = (8 * 60) / bpm; 
@@ -84,7 +91,8 @@ export const generateAiTrack = async (
     const prompt = trackType === 'beat' ? beatPrompt : instrumentPrompt;
 
     try {
-        const response = await ai.models.generateContent({
+        const geminiClient = getAiClient();
+        const response = await geminiClient.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
@@ -105,6 +113,9 @@ export const generateAiTrack = async (
 
     } catch (error) {
         console.error("Error calling Gemini API:", error);
+        if (error instanceof Error && error.message.includes("API key")) {
+            throw error;
+        }
         throw new Error("Failed to generate AI track. The model may have returned an invalid format.");
     }
 };
