@@ -45,28 +45,41 @@ export const TapPad: React.FC<TapPadProps> = ({ addTrack, trackType, instrument,
         const y = e.clientY - rect.top;
         
         let note: string;
+        const velocity = Math.max(0.1, Math.min(1, 1 - (y / rect.height)));
+
         if (trackType === TrackType.Beat) {
-            const drumSounds = ['kick', 'snare', 'hihat'];
-            const soundIndex = Math.floor((x / rect.width) * drumSounds.length);
-            note = drumSounds[soundIndex % drumSounds.length];
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+            const relativeDistance = distance / (rect.width / 2); // Normalize by radius
+
+            // Check for FX in top-right corner first
+            if (x > rect.width * 0.85 && y < rect.height * 0.15) {
+                note = 'fx';
+            } else if (relativeDistance < 0.25) { // Center zone for Bass
+                note = 'bass';
+            } else if (relativeDistance < 0.5) { // Inner ring for Kick
+                note = 'kick';
+            } else if (relativeDistance < 0.75) { // Middle ring for Snare
+                note = 'snare';
+            } else { // Outer ring for Hi-hat
+                note = 'hihat';
+            }
         } else {
             const noteIndex = Math.floor((x / rect.width) * PIANO_NOTES.length);
             note = PIANO_NOTES[noteIndex % PIANO_NOTES.length];
         }
-        
-        const velocity = Math.max(0.1, Math.min(1, 1 - (y / rect.height)));
 
         // --- 1. Play sound immediately for instant feedback ---
         playSampleNow(note, velocity, trackType, instrument);
         
         // --- 2. Quantize and Record Logic ---
         const beatDuration = 60 / bpm;
-        const subdivision = quantization / 4; // 16th notes -> 16/4=4. 8th -> 8/4=2.
+        const subdivision = quantization / 4;
         const subdivisionDuration = beatDuration / subdivision;
         const tapTime = (Date.now() - startTime.current) / 1000;
         const quantizedTime = Math.round(tapTime / subdivisionDuration) * subdivisionDuration;
 
-        // Store the quantized tap, overwriting if one already exists at this time slot
         recordedTaps.current.set(quantizedTime, { note, velocity });
 
         // --- 3. Visual Feedback ---
@@ -74,7 +87,7 @@ export const TapPad: React.FC<TapPadProps> = ({ addTrack, trackType, instrument,
         setFeedbacks(current => [...current, { id: feedbackId, x, y }]);
         setTimeout(() => {
             setFeedbacks(current => current.filter(f => f.id !== feedbackId));
-        }, 1000); // Tailwind's animate-ping duration is 1s
+        }, 1000);
     };
     
     const finishRecording = () => {
@@ -84,8 +97,7 @@ export const TapPad: React.FC<TapPadProps> = ({ addTrack, trackType, instrument,
         }
 
         const recordingDuration = (Date.now() - startTime.current) / 1000;
-        const beatDuration = 60 / bpm;
-        const noteDuration = beatDuration / 4; // 16th note default duration
+        const noteDuration = (60 / bpm) / 4; // 16th note default duration
         
         let events: Event[] = Array.from(recordedTaps.current.entries()).map(([time, tap], i) => ({
             id: `event_${Date.now()}_${i}`,
@@ -95,34 +107,20 @@ export const TapPad: React.FC<TapPadProps> = ({ addTrack, trackType, instrument,
             velocity: tap.velocity,
         }));
         
-        // Sort events by time just in case
         events.sort((a, b) => a.time - b.time);
 
-        // Ensure the full recording duration is captured by adding a final event if needed
+        // To preserve rests, we add a placeholder final event to mark the end time.
         const lastEventTime = events.length > 0 ? events[events.length - 1].time + events[events.length - 1].duration : 0;
         if (recordingDuration > lastEventTime) {
-             // We can represent the full duration by adjusting the duration of the last note,
-             // or by ensuring the rendering logic knows the total clip length.
-             // For simplicity, we'll let the event list define the length.
-             // To preserve rests, we add a placeholder final event if there's silence at the end.
-             if (events.length > 0) {
-                 const lastEvent = events[events.length - 1];
-                 const timeSinceLastEvent = recordingDuration - lastEvent.time;
-                 // A more robust system would have a "clip duration" property.
-                 // For now, extending the last note can be a visual cue.
-                 // Let's just create an empty event to mark the end time.
-                 events.push({
-                     id: `event_end_${Date.now()}`,
-                     time: recordingDuration,
-                     duration: 0,
-                     velocity: 0,
-                 });
-             }
+             events.push({
+                 id: `event_end_${Date.now()}`,
+                 time: recordingDuration,
+                 duration: 0,
+                 velocity: 0,
+             });
         }
         
-        // Filter out the placeholder event before adding the track
         const finalEvents = events.filter(e => e.duration > 0);
-
 
         const newTrack: Omit<Track, 'id'> = {
             name: `${instrument} Taps`,

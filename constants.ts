@@ -13,9 +13,11 @@ export const AVAILABLE_INSTRUMENTS: InstrumentType[] = [
 
 // Using Tone.js CDN for reliable audio samples.
 export const DRUM_SAMPLES: { [key: string]: string } = {
+    bass: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_bass-mp3/A1.mp3',
     kick: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3',
     snare: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3',
-    hihat: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3'
+    hihat: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3',
+    fx: 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/39255/clap.wav'
 };
 
 // A multi-octave range of piano notes for the TapPad

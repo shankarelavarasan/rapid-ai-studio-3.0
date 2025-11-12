@@ -26,7 +26,7 @@ const beatSchema = {
                     id: { type: Type.STRING, description: 'A unique ID for the event.' },
                     time: { type: Type.NUMBER, description: 'The start time of the drum hit in seconds, relative to the start of the measure.' },
                     duration: { type: Type.NUMBER, description: 'The duration of the hit in seconds (e.g., 0.1 for a short hit).' },
-                    note: { type: Type.STRING, description: "The drum sample to play. Must be one of: 'kick', 'snare', 'hihat'." },
+                    note: { type: Type.STRING, description: "The drum sample to play. Must be one of: 'bass', 'kick', 'snare', 'hihat', 'fx'." },
                     velocity: { type: Type.NUMBER, description: 'The velocity of the hit, from 0.0 to 1.0.' },
                 },
                 required: ['id', 'time', 'duration', 'note', 'velocity'],
@@ -62,16 +62,26 @@ const instrumentSchema = {
 export const generateAiTrack = async (
     trackType: 'beat' | 'instrument',
     bpm: number,
-    instrument: InstrumentType
+    instrument: InstrumentType,
 ): Promise<AiTrackResponse> => {
     if (!API_KEY) {
         throw new Error("Gemini API key is not configured.");
     }
     
-    const prompt =
-        trackType === 'beat'
-            ? `Create a compelling 2-measure (8 beats) drum pattern at ${bpm} BPM. The pattern should have a solid groove suitable for a pop song. Use only 'kick', 'snare', and 'hihat' samples. The total duration should be (8 * 60 / ${bpm}) seconds. Generate unique IDs for each event.`
-            : `Create a simple and catchy 2-measure (8 beats) ${instrument} melody at ${bpm} BPM in the key of C Major. Use a variety of notes from C3 to C6 to create an interesting melodic contour. Make it memorable and musically expressive. The total duration should be (8 * 60 / ${bpm}) seconds. Generate unique IDs for each event.`;
+    // Generate 2 measures of music
+    const totalDuration = (8 * 60) / bpm; 
+
+    const beatPrompt = `You are a professional beat-making AI. Your task is to generate a creative and catchy 2-measure drum pattern at ${bpm} BPM.
+
+    Follow these rules precisely:
+    1.  **Sound Palette**: Use only these drum sounds: 'bass', 'kick', 'snare', 'hihat', 'fx'.
+    2.  **Structure**: The 'bass' and 'kick' should form the core rhythmic foundation. The 'snare' should typically land on beats 2 and 4 of each measure. The 'hihat' should provide a steady rhythm (e.g., 8th or 16th notes). Use 'fx' sparingly for accents.
+    3.  **Rhythm**: Create a syncopated, professional rhythm. Do not just place all hits on the downbeat. The final pattern must be exactly ${totalDuration.toFixed(2)} seconds long.
+    4.  **Output Format**: Provide the output as a JSON object matching the required schema. Ensure every event has a unique ID, a precise time, a short duration (e.g., 0.1s), a valid note, and a velocity between 0.7 and 1.0.`;
+
+    const instrumentPrompt = `Create a simple, creative, and catchy 2-measure ${instrument} melody at ${bpm} BPM. The melody should be musically expressive and memorable, using notes from the C3 to C6 range. The total duration must be exactly ${totalDuration.toFixed(2)} seconds. Generate unique IDs for each event.`;
+
+    const prompt = trackType === 'beat' ? beatPrompt : instrumentPrompt;
 
     try {
         const response = await ai.models.generateContent({
@@ -80,7 +90,7 @@ export const generateAiTrack = async (
             config: {
                 responseMimeType: "application/json",
                 responseSchema: trackType === 'beat' ? beatSchema : instrumentSchema,
-                temperature: 0.8
+                temperature: 0.9
             }
         });
         
