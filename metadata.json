@@ -1,0 +1,5 @@
+{
+  "name": "Rapid AI Audio Studio",
+  "description": "A professional-quality audio studio that allows users to create multi-track music using manual tapping, audio recording/uploading, and AI-powered composition.",
+  "requestFramePermissions": []
+}
