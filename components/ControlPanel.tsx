@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { InstrumentType, Track, TrackType } from '../types';
 import { AVAILABLE_INSTRUMENTS } from '../constants';
 import { TapPad } from './TapPad';
+import { analyzeAudioToEvents } from '../services/audioAnalysisService';
 
 interface ControlPanelProps {
     addTrack: (track: Omit<Track, 'id'>) => void;
@@ -20,6 +21,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ addTrack, onAiCompos
     const [subMode, setSubMode] = useState<'tap' | 'upload'>('tap');
     const [selectedInstrument, setSelectedInstrument] = useState<InstrumentType>(AVAILABLE_INSTRUMENTS[0]);
     const [quantization, setQuantization] = useState(16);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,22 +32,51 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ addTrack, onAiCompos
         const arrayBuffer = await file.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-        const newTrack: Omit<Track, 'id'> = {
-            name: file.name,
-            type: TrackType.Audio,
-            events: [],
-            volume: 1,
-            pan: 0,
-            isMuted: false,
-            isSolo: false,
-            isLooped: false,
-            audioBuffer: audioBuffer,
-            startTime: 0,
-            duration: audioBuffer.duration,
-            trimStartTime: 0,
-            trimEndTime: audioBuffer.duration,
-        };
-        addTrack(newTrack);
+        if (mode === 'instrument' && subMode === 'upload') {
+            setIsAnalyzing(true);
+            try {
+                const events = await analyzeAudioToEvents(audioBuffer, bpm, quantization);
+                if (events.length === 0) {
+                    alert("Could not detect any notes in the audio file. Please try a clearer recording.");
+                    return;
+                }
+                const newTrack: Omit<Track, 'id'> = {
+                    name: `${selectedInstrument} from ${file.name}`,
+                    type: TrackType.Instrument,
+                    instrument: selectedInstrument,
+                    events: events,
+                    volume: 1,
+                    pan: 0,
+                    isMuted: false,
+                    isSolo: false,
+                    isLooped: false,
+                };
+                addTrack(newTrack);
+            } catch (err) {
+                console.error("Audio analysis error:", err);
+                alert("Failed to analyze audio. Please ensure it's a clear, monophonic recording.");
+            } finally {
+                setIsAnalyzing(false);
+            }
+        } else {
+             const newTrack: Omit<Track, 'id'> = {
+                name: file.name,
+                type: TrackType.Audio,
+                events: [],
+                volume: 1,
+                pan: 0,
+                isMuted: false,
+                isSolo: false,
+                isLooped: false,
+                audioBuffer: audioBuffer,
+                startTime: 0,
+                duration: audioBuffer.duration,
+                trimStartTime: 0,
+                trimEndTime: audioBuffer.duration,
+            };
+            addTrack(newTrack);
+        }
+       
         // Reset file input
         event.target.value = '';
     };
@@ -122,16 +153,31 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ addTrack, onAiCompos
                     ) : (
                         <div 
                             className="flex flex-col items-center justify-center h-full border-2 border-dashed border-gray-600 rounded-lg p-4 cursor-pointer hover:bg-gray-700/50 transition-colors"
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={() => !isAnalyzing && fileInputRef.current?.click()}
                         >
-                             <UploadIcon />
-                             <p className="mt-2 text-sm text-gray-400 text-center">Click to upload audio file (MP3, WAV)</p>
+                             {isAnalyzing ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+                                    <p className="mt-3 text-sm text-gray-400">Analyzing Audio...</p>
+                                </>
+                             ) : (
+                                <>
+                                    <UploadIcon />
+                                    <p className="mt-2 text-sm text-gray-400 text-center">
+                                        {mode === 'instrument' 
+                                            ? `Upload vocal or instrument melody to convert to ${selectedInstrument}`
+                                            : 'Upload audio file (MP3, WAV)'
+                                        }
+                                    </p>
+                                </>
+                             )}
                              <input 
                                 type="file" 
                                 ref={fileInputRef} 
                                 className="hidden" 
                                 accept=".mp3,.wav,.aiff"
                                 onChange={handleFileUpload}
+                                disabled={isAnalyzing}
                              />
                         </div>
                     )}

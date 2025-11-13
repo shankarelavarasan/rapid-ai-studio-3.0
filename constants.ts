@@ -17,7 +17,7 @@ export const DRUM_SAMPLES: { [key: string]: string } = {
     kick: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3',
     snare: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3',
     hihat: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3',
-    fx: 'https://tonejs.github.io/audio/drum-samples/TR-808/clap.mp3'
+    fx: 'https://tonejs.github.io/audio/drum-samples/linn-drum/clap.mp3'
 };
 
 // A multi-octave range of piano notes for the TapPad
