@@ -17,7 +17,7 @@ export const DRUM_SAMPLES: { [key: string]: string } = {
     kick: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3',
     snare: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3',
     hihat: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3',
-    fx: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/hand_clap-mp3/C5.mp3'
+    fx: 'https://tonejs.github.io/audio/drum-samples/CR78/claves.mp3' // Replaced faulty clap with reliable claves from the same kit
 };
 
 // A multi-octave range of piano notes for the TapPad
