@@ -11,13 +11,13 @@ export const AVAILABLE_INSTRUMENTS: InstrumentType[] = [
     InstrumentType.ElectricGuitar,
 ];
 
-// Using Tone.js CDN for reliable audio samples.
+// Using a mix of reliable CDNs for audio samples.
 export const DRUM_SAMPLES: { [key: string]: string } = {
     bass: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_bass-mp3/A1.mp3',
     kick: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3',
     snare: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3',
     hihat: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3',
-    fx: 'https://tonejs.github.io/audio/drum-samples/DR-110/clap.mp3'
+    fx: 'https://tonejs.github.io/audio/drum-samples/TR-808/clap.mp3'
 };
 
 // A multi-octave range of piano notes for the TapPad
