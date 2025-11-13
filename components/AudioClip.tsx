@@ -6,9 +6,20 @@ interface AudioClipProps {
     track: Track;
     pixelsPerSecond: number;
     onDrag: (eventId: string, newTime: number) => void;
+    isSelected: boolean;
+    onSelect: () => void;
+    onRightClick: (e: React.MouseEvent) => void;
 }
 
-export const AudioClip: React.FC<AudioClipProps> = ({ event, track, pixelsPerSecond, onDrag }) => {
+export const AudioClip: React.FC<AudioClipProps> = ({ 
+    event, 
+    track, 
+    pixelsPerSecond, 
+    onDrag, 
+    isSelected, 
+    onSelect,
+    onRightClick
+}) => {
     const left = event.time * pixelsPerSecond;
     const width = event.duration * pixelsPerSecond;
 
@@ -28,8 +39,6 @@ export const AudioClip: React.FC<AudioClipProps> = ({ event, track, pixelsPerSec
         const deltaX = e.clientX - startX;
         const deltaTime = deltaX / pixelsPerSecond;
         const newTime = Math.max(0, initialTime + deltaTime);
-
-        // A more robust implementation would snap to a grid here
         onDrag(eventId, newTime);
     };
 
@@ -40,15 +49,28 @@ export const AudioClip: React.FC<AudioClipProps> = ({ event, track, pixelsPerSec
             default: return 'bg-gray-500';
         }
     };
+    
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSelect();
+    };
+
+    const handleContextMenu = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onRightClick(e);
+    }
 
     return (
         <div 
             draggable
+            onClick={handleClick}
+            onContextMenu={handleContextMenu}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            // Add an onDragOver to the parent container in TrackLane to get continuous updates
-            className={`absolute top-2 h-20 rounded-md cursor-grab active:cursor-grabbing text-white text-xs p-1 flex items-start ${getBackgroundColor()} hover:opacity-80 transition-opacity`}
-            style={{ left: `${left}px`, width: `${Math.max(1, width)}px` }} // Ensure min width for visibility
+            className={`absolute top-2 h-20 rounded-md cursor-grab active:cursor-grabbing text-white text-xs p-1 flex items-start ${getBackgroundColor()} hover:opacity-80 transition-all duration-100 ease-in-out
+                ${isSelected ? 'ring-2 ring-yellow-400 shadow-lg' : ''}
+            `}
+            style={{ left: `${left}px`, width: `${Math.max(1, width)}px` }}
         >
             <span className="truncate pointer-events-none">{event.note || track.name}</span>
         </div>

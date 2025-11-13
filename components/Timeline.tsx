@@ -3,6 +3,11 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Track } from '../types';
 import { TrackLane } from './TrackLane';
 
+type SelectedClip = {
+    trackId: string;
+    eventId?: string;
+} | null;
+
 interface TimelineProps {
     tracks: Track[];
     playheadPosition: number;
@@ -11,12 +16,26 @@ interface TimelineProps {
     deleteTrack: (trackId: string) => void;
     bpm: number;
     reorderTracks: (dragIndex: number, hoverIndex: number) => void;
+    selectedClip: SelectedClip;
+    setSelectedClip: (clip: SelectedClip) => void;
+    onTimelineRightClick: (e: React.MouseEvent, trackId: string, time: number, eventId?: string) => void;
 }
 
 const RULER_HEIGHT = 30;
 const SECONDS_PER_VIEW = 10;
 
-export const Timeline: React.FC<TimelineProps> = ({ tracks, playheadPosition, setPlayheadPosition, updateTrack, deleteTrack, bpm, reorderTracks }) => {
+export const Timeline: React.FC<TimelineProps> = ({ 
+    tracks, 
+    playheadPosition, 
+    setPlayheadPosition, 
+    updateTrack, 
+    deleteTrack, 
+    bpm, 
+    reorderTracks,
+    selectedClip,
+    setSelectedClip,
+    onTimelineRightClick
+}) => {
     const timelineRef = useRef<HTMLDivElement>(null);
     const [timelineWidth, setTimelineWidth] = useState(0);
 
@@ -105,7 +124,7 @@ export const Timeline: React.FC<TimelineProps> = ({ tracks, playheadPosition, se
     };
 
     return (
-        <div className="flex-1 overflow-x-auto overflow-y-scroll bg-gray-800/50 p-4" ref={timelineRef}>
+        <div className="flex-1 overflow-x-auto overflow-y-scroll bg-gray-800/50 p-4" ref={timelineRef} onClick={() => setSelectedClip(null)}>
             <div className="relative w-full min-w-max h-full">
                 {/* Ruler */}
                 <div
@@ -140,6 +159,9 @@ export const Timeline: React.FC<TimelineProps> = ({ tracks, playheadPosition, se
                                 updateTrack={updateTrack}
                                 deleteTrack={deleteTrack}
                                 pixelsPerSecond={pixelsPerSecond}
+                                selectedClip={selectedClip}
+                                setSelectedClip={setSelectedClip}
+                                onRightClick={onTimelineRightClick}
                             />
                         </div>
                     ))}

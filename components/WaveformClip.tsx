@@ -6,6 +6,9 @@ interface WaveformClipProps {
     pixelsPerSecond: number;
     onDrag: (newStartTime: number) => void;
     updateTrack: (track: Track) => void;
+    isSelected: boolean;
+    onSelect: () => void;
+    onRightClick: (e: React.MouseEvent) => void;
 }
 
 const drawWaveform = (
@@ -79,7 +82,15 @@ const drawWaveform = (
 };
 
 
-export const WaveformClip: React.FC<WaveformClipProps> = ({ track, pixelsPerSecond, onDrag, updateTrack }) => {
+export const WaveformClip: React.FC<WaveformClipProps> = ({ 
+    track, 
+    pixelsPerSecond, 
+    onDrag, 
+    updateTrack,
+    isSelected,
+    onSelect,
+    onRightClick
+}) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const clipRef = useRef<HTMLDivElement>(null);
     
@@ -96,7 +107,6 @@ export const WaveformClip: React.FC<WaveformClipProps> = ({ track, pixelsPerSeco
 
     useEffect(() => {
         if (canvasRef.current && track.audioBuffer) {
-            // Resize canvas to match CSS dimensions for crisp rendering
             const canvas = canvasRef.current;
             const rect = canvas.getBoundingClientRect();
             canvas.width = rect.width;
@@ -130,7 +140,7 @@ export const WaveformClip: React.FC<WaveformClipProps> = ({ track, pixelsPerSeco
             
             if (handle === 'start') {
                 const newTrimStart = (mouseX / pixelsPerSecond) - startTime;
-                const clampedTrimStart = Math.max(0, Math.min(newTrimStart, trimEndTime - 0.1)); // Ensure start < end
+                const clampedTrimStart = Math.max(0, Math.min(newTrimStart, trimEndTime - 0.1));
                 const trimDiff = clampedTrimStart - trimStartTime;
                 
                 updateTrack({
@@ -140,7 +150,7 @@ export const WaveformClip: React.FC<WaveformClipProps> = ({ track, pixelsPerSeco
                 });
             } else { // 'end'
                 const newTrimEnd = (mouseX / pixelsPerSecond) - startTime;
-                const clampedTrimEnd = Math.min(duration, Math.max(newTrimEnd, trimStartTime + 0.1)); // Ensure end > start
+                const clampedTrimEnd = Math.min(duration, Math.max(newTrimEnd, trimStartTime + 0.1));
                 updateTrack({
                     ...track,
                     trimEndTime: clampedTrimEnd
@@ -157,10 +167,22 @@ export const WaveformClip: React.FC<WaveformClipProps> = ({ track, pixelsPerSeco
         document.addEventListener('mouseup', upHandler);
     };
 
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSelect();
+    };
+
+    const handleContextMenu = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onRightClick(e);
+    }
+
     return (
         <div
             ref={clipRef}
             draggable
+            onClick={handleClick}
+            onContextMenu={handleContextMenu}
             onDragStart={(e) => {
                 e.dataTransfer.setData('text/plain', JSON.stringify({ initialTime: startTime, startX: e.clientX }));
                 e.dataTransfer.effectAllowed = 'move';
@@ -169,7 +191,9 @@ export const WaveformClip: React.FC<WaveformClipProps> = ({ track, pixelsPerSeco
                 e.dataTransfer.setDragImage(img, 0, 0);
             }}
             onDragEnd={handleMainDrag}
-            className="absolute top-2 h-20 rounded-md cursor-grab active:cursor-grabbing bg-teal-800/50 border border-teal-500 overflow-hidden group"
+            className={`absolute top-2 h-20 rounded-md cursor-grab active:cursor-grabbing bg-teal-800/50 border border-teal-500 overflow-hidden group transition-all duration-100 ease-in-out
+                ${isSelected ? 'ring-2 ring-yellow-400 shadow-lg' : ''}
+            `}
             style={{ left: `${left}px`, width: `${width}px` }}
         >
             <div className="relative w-full h-full">
