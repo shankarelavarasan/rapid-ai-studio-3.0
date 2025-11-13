@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { InstrumentType, Track, TrackType } from '../types';
 import { AVAILABLE_INSTRUMENTS } from '../constants';
 import { TapPad } from './TapPad';
-import { analyzeAudioToEvents } from '../services/audioAnalysisService';
+import { transcribeAudioToEvents } from '../services/audioAnalysisService';
 
 interface ControlPanelProps {
     addTrack: (track: Omit<Track, 'id'>) => void;
@@ -35,16 +35,17 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ addTrack, onAiCompos
         if (mode === 'instrument' && subMode === 'upload') {
             setIsAnalyzing(true);
             try {
-                const events = await analyzeAudioToEvents(audioBuffer, bpm, quantization);
+                const { events, duration } = await transcribeAudioToEvents(audioBuffer, bpm, quantization, selectedInstrument);
                 if (events.length === 0) {
-                    alert("Could not detect any notes in the audio file. Please try a clearer recording.");
+                    alert("Could not detect a clear melody or rhythm in the audio file. Please try a different recording.");
                     return;
                 }
                 const newTrack: Omit<Track, 'id'> = {
-                    name: `${selectedInstrument} from ${file.name}`,
+                    name: `Recreated ${selectedInstrument}`,
                     type: TrackType.Instrument,
                     instrument: selectedInstrument,
                     events: events,
+                    duration: duration,
                     volume: 1,
                     pan: 0,
                     isMuted: false,
@@ -54,7 +55,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ addTrack, onAiCompos
                 addTrack(newTrack);
             } catch (err) {
                 console.error("Audio analysis error:", err);
-                alert("Failed to analyze audio. Please ensure it's a clear, monophonic recording.");
+                alert("Failed to analyze audio. Please ensure the recording is clear.");
             } finally {
                 setIsAnalyzing(false);
             }
@@ -101,7 +102,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ addTrack, onAiCompos
 
             {mode === 'instrument' && (
                 <div className="flex flex-col">
-                    <label htmlFor="instrument-select" className="text-sm font-medium text-gray-400 mb-1">Instrument</label>
+                    <label htmlFor="instrument-select" className="text-sm font-medium text-gray-400 mb-1">Target Instrument</label>
                     <select
                         id="instrument-select"
                         value={selectedInstrument}
@@ -158,14 +159,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ addTrack, onAiCompos
                              {isAnalyzing ? (
                                 <>
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-                                    <p className="mt-3 text-sm text-gray-400">Analyzing Audio...</p>
+                                    <p className="mt-3 text-sm text-gray-400">AI is copying your rhythm...</p>
                                 </>
                              ) : (
                                 <>
                                     <UploadIcon />
                                     <p className="mt-2 text-sm text-gray-400 text-center">
                                         {mode === 'instrument' 
-                                            ? `Upload vocal or instrument melody to convert to ${selectedInstrument}`
+                                            ? `Upload any sound to recreate with ${selectedInstrument}`
                                             : 'Upload audio file (MP3, WAV)'
                                         }
                                     </p>
