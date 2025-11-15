@@ -7,6 +7,8 @@ interface TransportControlsProps {
     onStop: () => void;
     bpm: number;
     setBpm: (bpm: number) => void;
+    playbackRate: number; // Kept in props for type consistency, but not used in UI
+    setPlaybackRate: (rate: number) => void;
 }
 
 const PlayIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>);
@@ -28,7 +30,7 @@ export const TransportControls: React.FC<TransportControlsProps> = ({ isPlaying,
                     type="number"
                     id="bpm"
                     value={bpm}
-                    onChange={(e) => setBpm(Number(e.target.value))}
+                    onChange={(e) => setBpm(Math.max(20, Math.min(300, Number(e.target.value))))}
                     className="bg-gray-700 w-20 text-center rounded-md border border-gray-600 p-1"
                 />
             </div>

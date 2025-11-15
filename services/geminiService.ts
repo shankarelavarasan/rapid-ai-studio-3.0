@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Event, InstrumentType } from '../types';
+import { DRUM_SAMPLE_KEYS, PIANO_NOTES } from "./sampleService";
 
 interface AiTrackResponse {
     events: Event[];
@@ -23,7 +24,6 @@ const getAiClient = () => {
     return ai;
 };
 
-
 const beatSchema = {
     type: Type.OBJECT,
     properties: {
@@ -36,7 +36,10 @@ const beatSchema = {
                     id: { type: Type.STRING, description: 'A unique ID for the event.' },
                     time: { type: Type.NUMBER, description: 'The start time of the drum hit in seconds, relative to the start of the measure.' },
                     duration: { type: Type.NUMBER, description: 'The duration of the hit in seconds (e.g., 0.1 for a short hit).' },
-                    note: { type: Type.STRING, description: "The drum sample to play. Must be one of: 'bass', 'kick', 'snare', 'hihat', 'fx'." },
+                    note: { 
+                        type: Type.STRING, 
+                        description: `The drum sample to play. Must be one of: '${DRUM_SAMPLE_KEYS.join("', '")}'.`
+                    },
                     velocity: { type: Type.NUMBER, description: 'The velocity of the hit, from 0.0 to 1.0.' },
                 },
                 required: ['id', 'time', 'duration', 'note', 'velocity'],
@@ -58,7 +61,10 @@ const instrumentSchema = {
                     id: { type: Type.STRING, description: 'A unique ID for the event.' },
                     time: { type: Type.NUMBER, description: 'The start time of the note in seconds, relative to the start of the measure.' },
                     duration: { type: Type.NUMBER, description: 'The duration of the note in seconds.' },
-                    note: { type: Type.STRING, description: "The musical note to play, e.g., 'C4', 'G5'. Use notes from the C2 to B6 range." },
+                    note: { 
+                        type: Type.STRING, 
+                        description: `The musical note to play, e.g., 'C4', 'G5'. Use notes from this list: ${PIANO_NOTES.join(', ')}.`
+                    },
                     velocity: { type: Type.NUMBER, description: 'The velocity of the note, from 0.0 to 1.0.' },
                 },
                 required: ['id', 'time', 'duration', 'note', 'velocity'],
@@ -81,12 +87,12 @@ export const generateAiTrack = async (
     const beatPrompt = `You are a professional beat-making AI. Your task is to generate a creative and catchy 2-measure drum pattern at ${bpm} BPM.
 
     Follow these rules precisely:
-    1.  **Sound Palette**: Use only these drum sounds: 'bass', 'kick', 'snare', 'hihat', 'fx'.
-    2.  **Structure**: The 'bass' and 'kick' should form the core rhythmic foundation. The 'snare' should typically land on beats 2 and 4 of each measure. The 'hihat' should provide a steady rhythm (e.g., 8th or 16th notes). Use 'fx' sparingly for accents.
+    1.  **Sound Palette**: Use only these drum sounds: '${DRUM_SAMPLE_KEYS.join("', '")}'.
+    2.  **Structure**: The 'bass' and 'kick' should form the core rhythmic foundation. The 'snare' should typically land on beats 2 and 4 of each measure. The 'hihat' should provide a steady rhythm (e.g., 8th or 16th notes). Use 'clap' sparingly for accents.
     3.  **Rhythm**: Create a syncopated, professional rhythm. Do not just place all hits on the downbeat. The final pattern must be exactly ${totalDuration.toFixed(2)} seconds long.
     4.  **Output Format**: Provide the output as a JSON object matching the required schema. Ensure every event has a unique ID, a precise time, a short duration (e.g., 0.1s), a valid note, and a velocity between 0.7 and 1.0.`;
 
-    const instrumentPrompt = `Create a simple, creative, and catchy 2-measure ${instrument} melody at ${bpm} BPM. The melody should be musically expressive and memorable, using notes from the C3 to C6 range. The total duration must be exactly ${totalDuration.toFixed(2)} seconds. Generate unique IDs for each event.`;
+    const instrumentPrompt = `Create a simple, creative, and catchy 2-measure ${instrument} melody at ${bpm} BPM. The melody should be musically expressive and memorable, using notes from the C3 to C6 range. The total duration must be exactly ${totalDuration.toFixed(2)} seconds. Generate unique IDs for each event. The available notes are ${PIANO_NOTES.join(', ')}.`;
 
     const prompt = trackType === 'beat' ? beatPrompt : instrumentPrompt;
 

@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState } from 'react';
 import { Header } from './components/Header';
 import { Timeline } from './components/Timeline';
@@ -9,18 +10,15 @@ import { AiComposeModal } from './components/AiComposeModal';
 import { AVAILABLE_INSTRUMENTS } from './constants';
 import { useHistory } from './hooks/useHistory';
 import { ContextMenu, ContextMenuItem } from './components/ContextMenu';
+import { ClipboardItem } from './services/clipboardService';
 
 type SelectedClip = {
     trackId: string;
     eventId?: string; // For event-based clips
 };
 
-type ClipboardItem = 
-    | { type: 'event'; event: Event; originalInstrument?: InstrumentType }
-    | { type: 'audio'; track: Track };
-
-
-const App: React.FC = () => {
+// Fix: Export the App component to make it available for import in other modules.
+export const App: React.FC = () => {
     const { 
         state: tracks, 
         setState: setTracks, 
@@ -31,6 +29,7 @@ const App: React.FC = () => {
     } = useHistory<Track[]>([]);
     
     const [bpm, setBpm] = useState<number>(120);
+    const [playbackRate, setPlaybackRate] = useState<number>(1.0);
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const [aiTrackType, setAiTrackType] = useState<'beat' | 'instrument'>('beat');
     const [aiInstrument, setAiInstrument] = useState<InstrumentType>(AVAILABLE_INSTRUMENTS[0]);
@@ -44,16 +43,15 @@ const App: React.FC = () => {
         togglePlay,
         stop,
         setPlayheadPosition,
-        proactivelyLoadTrackSamples,
         isLoadingSamples,
-        playSampleNow
-    } = useAudioEngine(tracks, bpm);
+        playSampleNow,
+        initializationError,
+    } = useAudioEngine(tracks, bpm, playbackRate);
 
     const addTrack = useCallback((newTrack: Omit<Track, 'id'>) => {
         const trackWithId: Track = { ...newTrack, id: `track_${Date.now()}_${Math.random()}` };
         setTracks(prev => [...prev, trackWithId]);
-        proactivelyLoadTrackSamples(trackWithId);
-    }, [proactivelyLoadTrackSamples, setTracks]);
+    }, [setTracks]);
 
     const updateTrack = useCallback((updatedTrack: Track) => {
         setTracks(prev => prev.map(t => t.id === updatedTrack.id ? updatedTrack : t));
@@ -252,28 +250,36 @@ const App: React.FC = () => {
                         onStop={stop}
                         bpm={bpm}
                         setBpm={setBpm}
+                        playbackRate={playbackRate}
+                        setPlaybackRate={setPlaybackRate}
                     />
                 </div>
                 <ControlPanel 
                     addTrack={addTrack} 
                     onAiCompose={handleAiCompose} 
-                    isLoading={isLoadingSamples} 
+                    isLoading={isLoadingSamples}
+                    initializationError={initializationError}
                     bpm={bpm}
                     playSampleNow={playSampleNow}
                 />
             </main>
             {isAiModalOpen && (
-                <AiComposeModal
-                    trackType={aiTrackType}
-                    instrument={aiInstrument}
+                <AiComposeModal 
+                    trackType={aiTrackType} 
+                    instrument={aiInstrument} 
                     bpm={bpm}
                     onClose={() => setIsAiModalOpen(false)}
                     onTrackGenerated={handleAiTrackGenerated}
                 />
             )}
-            {contextMenu && <ContextMenu {...contextMenu} onClose={closeContextMenu} />}
+            {contextMenu && (
+                <ContextMenu 
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    items={contextMenu.items}
+                    onClose={closeContextMenu}
+                />
+            )}
         </div>
     );
 };
-
-export default App;

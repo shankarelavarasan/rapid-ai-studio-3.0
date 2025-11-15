@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import { Track } from '../types';
 import { AudioClip } from './AudioClip';
 import { WaveformClip } from './WaveformClip';
@@ -32,6 +33,26 @@ export const TrackLane: React.FC<TrackLaneProps> = ({
     setSelectedClip,
     onRightClick
 }) => {
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editingName, setEditingName] = useState(track.name);
+    const nameInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isEditingName && nameInputRef.current) {
+            nameInputRef.current.focus();
+            nameInputRef.current.select();
+        }
+    }, [isEditingName]);
+
+    const handleNameChange = () => {
+        if (editingName.trim()) {
+            updateTrack({ ...track, name: editingName.trim() });
+        } else {
+            setEditingName(track.name); // Reset if empty
+        }
+        setIsEditingName(false);
+    };
+
     const handleMute = () => updateTrack({ ...track, isMuted: !track.isMuted });
     const handleSolo = () => updateTrack({ ...track, isSolo: !track.isSolo });
     const handleLoop = () => updateTrack({ ...track, isLooped: !track.isLooped });
@@ -58,14 +79,43 @@ export const TrackLane: React.FC<TrackLaneProps> = ({
     return (
         <div className="flex items-stretch h-24 bg-gray-700/50 rounded-lg shadow-md">
             <div className="w-48 p-2 flex flex-col justify-between border-r border-gray-600">
-                <span className="font-bold text-sm truncate">{track.name}</span>
-                <div className="flex space-x-1">
-                    <button onClick={handleMute} className={`p-1.5 rounded-md transition-colors ${track.isMuted ? 'bg-yellow-500 text-white' : 'bg-gray-600 hover:bg-gray-500'}`} title="Mute"><MuteIcon/></button>
-                    <button onClick={handleSolo} className={`p-1.5 rounded-md transition-colors ${track.isSolo ? 'bg-blue-500 text-white' : 'bg-gray-600 hover:bg-gray-500'}`} title="Solo"><SoloIcon/></button>
-                    <button onClick={handleLoop} className={`p-1.5 rounded-md transition-colors ${track.isLooped ? 'bg-green-500 text-white' : 'bg-gray-600 hover:bg-gray-500'}`} title="Loop"><LoopIcon/></button>
-                    <input type="range" min="0" max="1" step="0.01" value={track.volume} onChange={(e) => updateTrack({...track, volume: parseFloat(e.target.value)})} className="w-full" title="Volume"/>
-                    <button onClick={() => deleteTrack(track.id)} className="p-1.5 rounded-md bg-gray-600 hover:bg-red-500 text-gray-300 hover:text-white transition-colors" title="Delete"><DeleteIcon/></button>
+                <div>
+                    {isEditingName ? (
+                        <input
+                            ref={nameInputRef}
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onBlur={handleNameChange}
+                            onKeyDown={(e) => e.key === 'Enter' && handleNameChange()}
+                            className="w-full bg-gray-900 text-white p-1 rounded-md text-sm"
+                        />
+                    ) : (
+                        <span 
+                            onDoubleClick={() => setIsEditingName(true)}
+                            className="font-bold text-sm truncate cursor-pointer"
+                            title="Double-click to edit name"
+                        >
+                            {track.name}
+                        </span>
+                    )}
                 </div>
+                <div className="grid grid-cols-3 gap-1">
+                     <button onClick={handleMute} className={`p-1.5 rounded-md flex justify-center items-center transition-colors ${track.isMuted ? 'bg-yellow-500 text-white' : 'bg-gray-600 hover:bg-gray-500'}`} title="Mute"><MuteIcon/></button>
+                     <button onClick={handleSolo} className={`p-1.5 rounded-md flex justify-center items-center transition-colors ${track.isSolo ? 'bg-blue-500 text-white' : 'bg-gray-600 hover:bg-gray-500'}`} title="Solo"><SoloIcon/></button>
+                     <button onClick={handleLoop} className={`p-1.5 rounded-md flex justify-center items-center transition-colors ${track.isLooped ? 'bg-green-500 text-white' : 'bg-gray-600 hover:bg-gray-500'}`} title="Loop"><LoopIcon/></button>
+                </div>
+                 <div className="space-y-1">
+                     <div className="flex items-center space-x-1 text-xs text-gray-400">
+                        <span>V</span>
+                        <input type="range" min="0" max="1" step="0.01" value={track.volume} onChange={(e) => updateTrack({...track, volume: parseFloat(e.target.value)})} className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer" title="Volume"/>
+                     </div>
+                      <div className="flex items-center space-x-1 text-xs text-gray-400">
+                        <span>P</span>
+                        <input type="range" min="-1" max="1" step="0.01" value={track.pan} onChange={(e) => updateTrack({...track, pan: parseFloat(e.target.value)})} className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer" title="Pan"/>
+                     </div>
+                 </div>
+                 <button onClick={() => deleteTrack(track.id)} className="w-full mt-1 py-1 rounded-md bg-gray-600 hover:bg-red-500 text-gray-300 hover:text-white transition-colors text-xs flex items-center justify-center" title="Delete"><DeleteIcon/> <span className="ml-1">Delete</span></button>
             </div>
             <div className="flex-1 relative" onContextMenu={handleLaneRightClick}>
                 {track.type === 'audio' && track.audioBuffer && track.duration !== undefined && track.startTime !== undefined ? (

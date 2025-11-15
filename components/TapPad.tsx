@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Track, Event, TrackType, InstrumentType } from '../types';
-import { PIANO_NOTES } from '../constants';
+import { PIANO_NOTES } from '../services/sampleService';
 
 interface TapPadProps {
     addTrack: (track: Omit<Track, 'id'>) => void;
@@ -53,9 +53,9 @@ export const TapPad: React.FC<TapPadProps> = ({ addTrack, trackType, instrument,
             const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
             const relativeDistance = distance / (rect.width / 2); // Normalize by radius
 
-            // Check for FX in top-right corner first
+            // Check for clap in top-right corner first
             if (x > rect.width * 0.85 && y < rect.height * 0.15) {
-                note = 'fx';
+                note = 'clap';
             } else if (relativeDistance < 0.25) { // Center zone for Bass
                 note = 'bass';
             } else if (relativeDistance < 0.5) { // Inner ring for Kick
